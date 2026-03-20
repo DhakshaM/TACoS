@@ -1,0 +1,79 @@
+[
+  {
+    "strategy": "Whitespace (Baseline)",
+    "fertility": 1.0853,
+    "oov_rate": 0.0,
+    "nsl": 0.213586,
+    "cpt": 3.7768,
+    "pcw": 0.0,
+    "vocab_size": 167925,
+    "total_tokens": 8572131,
+    "total_sentences": 139067
+  },
+  {
+    "strategy": "Word (IndicNLP)",
+    "fertility": 1.0953,
+    "oov_rate": 0.0,
+    "nsl": 0.215553,
+    "cpt": 3.7423,
+    "pcw": 0.0,
+    "vocab_size": 154895,
+    "total_tokens": 8651077,
+    "total_sentences": 139067
+  },
+  {
+    "strategy": "Character (Grapheme Clusters)",
+    "fertility": 2.3721,
+    "oov_rate": 0.0,
+    "nsl": 0.466839,
+    "cpt": 1.728,
+    "pcw": 0.7233,
+    "vocab_size": 6609,
+    "total_tokens": 18736288,
+    "total_sentences": 139067
+  },
+  {
+    "strategy": "BPE",
+    "fertility": 1.1946,
+    "oov_rate": 0.0,
+    "nsl": 0.235103,
+    "cpt": 3.431,
+    "pcw": 0.0786,
+    "vocab_size": 14504,
+    "total_tokens": 9435711,
+    "total_sentences": 139067
+  },
+  {
+    "strategy": "WordPiece",
+    "fertility": 1.2149,
+    "oov_rate": 0.0,
+    "nsl": 0.239092,
+    "cpt": 3.5768,
+    "pcw": 0.0881,
+    "vocab_size": 14124,
+    "total_tokens": 9595827,
+    "total_sentences": 139067
+  },
+  {
+    "strategy": "Unigram LM",
+    "fertility": 1.1678,
+    "oov_rate": 0.0,
+    "nsl": 0.229826,
+    "cpt": 4.3661,
+    "pcw": 0.085,
+    "vocab_size": 14131,
+    "total_tokens": 9223909,
+    "total_sentences": 139067
+  },
+  {
+    "strategy": "Byte-Level BPE",
+    "fertility": 3.2977,
+    "oov_rate": 0.0,
+    "nsl": 0.649007,
+    "cpt": 3.9977,
+    "pcw": 0.8897,
+    "vocab_size": 7983,
+    "total_tokens": 26047515,
+    "total_sentences": 139067
+  }
+]

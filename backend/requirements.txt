@@ -1,0 +1,6 @@
+# backend/requirements.txt
+fastapi==0.111.0
+uvicorn==0.30.1
+tokenizers==0.19.1
+indic-nlp-library==0.92
+regex==2024.5.15

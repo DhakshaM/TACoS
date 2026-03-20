@@ -1,0 +1,53 @@
+/* frontend/src/index.css */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-0:      #080c14;
+  --bg-1:      #0d1420;
+  --bg-2:      #111927;
+  --bg-3:      #162030;
+  --border:    #1e2d42;
+  --border-hi: #2a3f5a;
+  --text-0:    #e8edf5;
+  --text-1:    #8fa3bc;
+  --text-2:    #4d6480;
+  --amber:     #f0a832;
+  --amber-dim: #7a5418;
+  --cyan:      #2dd4bf;
+  --cyan-dim:  #0f4f48;
+  --red:       #f05050;
+  --green:     #4ade80;
+  --purple:    #a78bfa;
+
+  /* token palette — 12 distinct hues */
+  --tok-0: #f0a832; --tok-1: #2dd4bf; --tok-2: #a78bfa;
+  --tok-3: #f472b6; --tok-4: #4ade80; --tok-5: #60a5fa;
+  --tok-6: #fb923c; --tok-7: #e879f9; --tok-8: #34d399;
+  --tok-9: #f87171; --tok-10:#38bdf8; --tok-11:#facc15;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --font-ui:      'DM Sans', sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --shadow-lg: 0 24px 64px rgba(0,0,0,0.6);
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-1); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, textarea { font-family: inherit; }
