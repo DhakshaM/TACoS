@@ -1,10 +1,20 @@
 // frontend/src/views/Diff.jsx
 import { useState, useEffect, useRef } from 'react'
 
-const PRESETS = [
-  { label: 'Simple',  text: 'भारत एक महान देश है।' },
-  { label: 'Complex', text: 'राजभाषा हिन्दी में क्षमा और करुणा के भाव निहित हैं।' },
-]
+const PRESETS_BY_LANG = {
+  hindi: [
+    { label: 'Simple',  text: 'भारत एक महान देश है।' },
+    { label: 'Complex', text: 'राजभाषा हिन्दी में क्षमा और करुणा के भाव निहित हैं।' },
+  ],
+  tamil: [
+    { label: 'Simple',  text: 'தமிழ் மொழி அழகானது.' },
+    { label: 'Agglut.', text: 'பேசப்படுகின்றன என்பது ஒரு நீண்ட சொல்.' },
+  ],
+  marathi: [
+    { label: 'Simple',  text: 'मराठी ही महाराष्ट्राची राजभाषा आहे.' },
+  ],
+}
+
 
 // Compute pairwise agreement: for each whitespace word, which strategies agree on
 // how to tokenize it (i.e. produce the same number of sub-tokens)
@@ -36,7 +46,14 @@ function buildDiffTable(text, result) {
 }
 
 export default function Diff({ result, strategies, language, onSubmit, loading }) {
-  const [text, setText]   = useState(PRESETS[0].text)
+  const PRESETS = PRESETS_BY_LANG[language] || PRESETS_BY_LANG.hindi
+  const [text, setText] = useState(PRESETS[0].text)
+
+  useEffect(() => {
+    const newPresets = PRESETS_BY_LANG[language] || PRESETS_BY_LANG.hindi
+    setText(newPresets[0].text)
+    onSubmit(newPresets[0].text)
+  }, [language])
   const debounceRef       = useRef(null)
 
   const handleChange = val => {

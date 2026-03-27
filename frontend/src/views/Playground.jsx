@@ -7,12 +7,26 @@ const TOK_COLORS = [
   'var(--tok-8)','var(--tok-9)','var(--tok-10)','var(--tok-11)',
 ]
 
-const PRESETS = [
-  { label: 'Simple',    text: 'भारत एक महान देश है।' },
-  { label: 'Conjuncts', text: 'क्षमा करना बहुत कठिन है।' },
-  { label: 'Complex',   text: 'हिन्दी भारत की राजभाषा है और यह देवनागरी लिपि में लिखी जाती है।' },
-  { label: 'Long',      text: 'भारतीय संविधान में हिन्दी को राजभाषा का दर्जा दिया गया है जो पूरे देश में बोली और समझी जाती है।' },
-]
+// Replace the PRESETS constant at the top of Playground.jsx
+
+const PRESETS_BY_LANG = {
+  hindi: [
+    { label: 'Simple',    text: 'भारत एक महान देश है।' },
+    { label: 'Conjuncts', text: 'क्षमा करना बहुत कठिन है।' },
+    { label: 'Complex',   text: 'हिन्दी भारत की राजभाषा है और यह देवनागरी लिपि में लिखी जाती है।' },
+    { label: 'Long',      text: 'भारतीय संविधान में हिन्दी को राजभाषा का दर्जा दिया गया है जो पूरे देश में बोली और समझी जाती है।' },
+  ],
+  tamil: [
+    { label: 'Simple',    text: 'தமிழ் மொழி அழகானது.' },
+    { label: 'Conjunct',  text: 'க்ஷமை கேட்பது மிகவும் கஷ்டமான காரியம்.' },
+    { label: 'Agglut.',   text: 'இந்தியா ஒரு பெரிய நாடு. இங்கு பல மொழிகள் பேசப்படுகின்றன.' },
+    { label: 'Long',      text: 'தமிழ் மொழி உலகின் பழமையான மொழிகளில் ஒன்றாகும் மற்றும் தென்னிந்தியாவில் பரவலாக பேசப்படுகிறது.' },
+  ],
+  marathi: [
+    { label: 'Simple',    text: 'मराठी ही महाराष्ट्राची राजभाषा आहे.' },
+    { label: 'Complex',   text: 'पुणे हे महाराष्ट्रातील एक प्रमुख शहर आहे.' },
+  ],
+}
 
 const METRIC_DEFS = {
   fertility:  { label: 'Fertility',  unit: 'tok/word', good: v => v < 2   ? 'good' : v < 4 ? 'mid' : 'bad' },
@@ -154,7 +168,15 @@ function TokenSpans({ tokens, strategyKey }) {
 }
 
 export default function Playground({ result, loading, error, strategies, language, onSubmit }) {
+  const PRESETS = PRESETS_BY_LANG[language] || PRESETS_BY_LANG.hindi
   const [text, setText] = useState(PRESETS[0].text)
+
+  // Also add language to the useEffect dependency so presets reset on language switch:
+  useEffect(() => {
+    const newPresets = PRESETS_BY_LANG[language] || PRESETS_BY_LANG.hindi
+    setText(newPresets[0].text)
+    onSubmit(newPresets[0].text)
+  }, [language])
   const debounceRef = useRef(null)
 
   const handleChange = val => {

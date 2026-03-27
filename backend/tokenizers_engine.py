@@ -1,4 +1,5 @@
 # backend/tokenizers_engine.py
+import unicodedata
 
 import os, re, regex, json
 from tokenizers import Tokenizer as HFTokenizer
@@ -50,6 +51,22 @@ def word_tokenize(text: str, lang: str = "hi"):
 def char_tokenize(text: str):
     return [gc for gc in regex.findall(r'\X', text) if gc.strip()]
 
+_TAMIL_RE    = re.compile(
+    r'[^\u0B80-\u0BFF\u0BE6-\u0BEF\s\|,;:!?\.\"\'\(\)\[\]\{\}\-]'
+)
+_MULTI_SPACE = re.compile(r'\s+')
+
+def clean_tamil(text: str) -> str:
+    text = unicodedata.normalize('NFC', text)
+    try:
+        norm = _norm_factory.get_normalizer("ta")
+        text = norm.normalize(text)
+    except Exception:
+        pass
+    text = _TAMIL_RE.sub(' ', text)
+    text = _MULTI_SPACE.sub(' ', text)
+    return text.strip()
+
 # ── load trained tokenizers ──────────────────────────────────────────────────
 _LANG_MODELS = {}
 
@@ -72,7 +89,13 @@ for _lc in ("hindi", "marathi", "tamil"):
     _load_lang(_lc)
 
 # ── tokenize one text, all 7 strategies ──────────────────────────────────────
+# Replace the existing tokenize_all function in tokenizers_engine.py
+
 def tokenize_all(text: str, lang_code: str, lang_short: str = "hi") -> dict:
+    # Apply language-specific cleaning
+    if lang_short == "ta":
+        text = clean_tamil(text)
+
     models = _load_lang(lang_code)
 
     def _hf(key):
@@ -81,7 +104,7 @@ def tokenize_all(text: str, lang_code: str, lang_short: str = "hi") -> dict:
             return ["[model not loaded]"]
         return m.encode(text).tokens
 
-    results = {
+    return {
         "whitespace": whitespace_tokenize(text),
         "word":       word_tokenize(text, lang_short),
         "character":  char_tokenize(text),
@@ -90,7 +113,6 @@ def tokenize_all(text: str, lang_code: str, lang_short: str = "hi") -> dict:
         "unigram":    _hf("unigram"),
         "bbpe":       _hf("bbpe"),
     }
-    return results
 
 # ── compute live metrics for a single tokenization ───────────────────────────
 import unicodedata
