@@ -63,10 +63,10 @@ Trained on [IndicCorpV2](https://huggingface.co/datasets/ai4bharat/IndicCorpV2) 
 ```
 tokenizer-explorer/
 ├── backend/
-│   ├── main.py                  # FastAPI server
-│   ├── tokenizers_engine.py     # All 7 tokenizer implementations
+│   ├── main.py                  
+│   ├── tokenizers_engine.py     
 │   ├── requirements.txt
-│   └── models/                  # Trained tokenizer files (not committed)
+│   └── models/                 
 │       ├── hindi_bpe.json
 │       ├── hindi_wordpiece.json
 │       ├── hindi_unigram.json
