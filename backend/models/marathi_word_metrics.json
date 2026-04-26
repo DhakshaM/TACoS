@@ -1,0 +1,11 @@
+{
+  "strategy": "Word (IndicNLP)",
+  "fertility": 1.1508,
+  "oov_rate": 0.0,
+  "nsl": 0.167419,
+  "cpt": 5.1253,
+  "pcw": 0.0,
+  "vocab_size": 366819,
+  "total_tokens": 6536928,
+  "total_sentences": 138851
+}

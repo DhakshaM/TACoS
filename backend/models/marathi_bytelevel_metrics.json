@@ -1,0 +1,11 @@
+{
+  "strategy": "Byte-Level BPE",
+  "fertility": 4.8137,
+  "oov_rate": 0.0,
+  "nsl": 0.700314,
+  "cpt": 3.8201,
+  "pcw": 0.9373,
+  "vocab_size": 10801,
+  "total_tokens": 27343991,
+  "total_sentences": 138851
+}

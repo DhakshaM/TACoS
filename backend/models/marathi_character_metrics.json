@@ -1,0 +1,11 @@
+{
+  "strategy": "Character (Grapheme Clusters)",
+  "fertility": 3.2513,
+  "oov_rate": 0.0,
+  "nsl": 0.473009,
+  "cpt": 1.8141,
+  "pcw": 0.9265,
+  "vocab_size": 6526,
+  "total_tokens": 18468803,
+  "total_sentences": 138851
+}

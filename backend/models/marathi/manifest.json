@@ -1,0 +1,15 @@
+{
+  "language": "Marathi (mr / Devanagari)",
+  "vocab_size": 16000,
+  "corpus_size": "~105 MB (IndicCorpV2)",
+  "strategies": {
+    "whitespace": "no model file — pure Python, no file needed",
+    "word_indic": "no model file — IndicNLP rule-based, no file needed",
+    "character": "no model file — regex grapheme clusters, no file needed",
+    "bpe": "tokenizer_models/marathi_bpe.json",
+    "wordpiece": "tokenizer_models/marathi_wordpiece.json",
+    "unigram": "tokenizer_models/marathi_unigram.json",
+    "bbpe": "tokenizer_models/marathi_bbpe.json"
+  },
+  "metrics_file": "marathi_all_metrics.json"
+}
