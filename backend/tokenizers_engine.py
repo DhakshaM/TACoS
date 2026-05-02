@@ -30,23 +30,26 @@ def _normalise(text: str, lang: str) -> str:
     except Exception:
         return text
 
+
 # ── punct splitter (for whitespace baseline) ─────────────────────────────────
-_PUNCT_RE = re.compile(r'([।॥,;:!?\.\"\'\(\)\[\]\{\}])')
+_PUNCT_RE = re.compile(r'([।॥,;:!?\.\"\'\(\)\[\]\{\}\-])')
 
 def whitespace_tokenize(text: str):
-    tokens = []
-    for raw in text.split():
-        expanded = _PUNCT_RE.sub(r' \1 ', raw)
-        tokens.extend(t for t in expanded.split() if t)
-    return tokens
+    """Pure whitespace tokenizer - keeps punctuation attached to words"""
+    return text.split()   
+
 
 def word_tokenize(text: str, lang: str = "hi"):
+    """Splits punctuation as separate tokens"""
     if _INDIC_OK:
         try:
-            return _indic_tok.trivial_tokenize(_normalise(text, lang), lang=lang)
+            normalized = _normalise(text, lang)
+            return _indic_tok.trivial_tokenize(normalized, lang=lang)
         except Exception:
             pass
-    return whitespace_tokenize(text)
+
+    expanded = _PUNCT_RE.sub(r' \1 ', text)
+    return [t for t in expanded.split() if t]
 
 def char_tokenize(text: str):
     return [gc for gc in regex.findall(r'\X', text) if gc.strip()]
