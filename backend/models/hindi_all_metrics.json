@@ -1,13 +1,13 @@
 [
   {
     "strategy": "Whitespace (Baseline)",
-    "fertility": 1.0853,
+    "fertility": 1.0,
     "oov_rate": 0.0,
-    "nsl": 0.213586,
-    "cpt": 3.7768,
+    "nsl": 0.196805,
+    "cpt": 4.0988,
     "pcw": 0.0,
-    "vocab_size": 167925,
-    "total_tokens": 8572131,
+    "vocab_size": 228753,
+    "total_tokens": 7898663,
     "total_sentences": 139067
   },
   {
@@ -56,13 +56,13 @@
   },
   {
     "strategy": "Unigram LM",
-    "fertility": 1.1678,
+    "fertility": 1.1071,
     "oov_rate": 0.0,
-    "nsl": 0.229826,
-    "cpt": 4.3661,
-    "pcw": 0.085,
-    "vocab_size": 14131,
-    "total_tokens": 9223909,
+    "nsl": 0.217876,
+    "cpt": 4.6056,
+    "pcw": 0.0599,
+    "vocab_size": 27469,
+    "total_tokens": 8744334,
     "total_sentences": 139067
   },
   {
