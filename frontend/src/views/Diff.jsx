@@ -12,6 +12,7 @@ const PRESETS_BY_LANG = {
   ],
   marathi: [
     { label: 'Simple',  text: 'मराठी ही महाराष्ट्राची राजभाषा आहे.' },
+    { label: 'Agglut.', text: 'शहरातील गर्दीत चालताना लोक एकमेकांना ओळखत नाहीत.' },
   ],
 }
 

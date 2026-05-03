@@ -41,6 +41,8 @@ def whitespace_tokenize(text: str):
 
 def word_tokenize(text: str, lang: str = "hi"):
     """Splits punctuation as separate tokens"""
+    if not (text or "").strip():
+        return []
     if _INDIC_OK:
         try:
             normalized = _normalise(text, lang)
