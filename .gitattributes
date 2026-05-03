@@ -1,3 +1,8 @@
 # Git LFS track configuration
 *.zip filter=lfs diff=lfs merge=lfs -text
 *.txt filter=lfs diff=lfs merge=lfs -text
+# Handle all files with LF by default
+* text eol=lf
+
+# Ensure JSON models specifically never get CRLF
+*.json text eol=lf
