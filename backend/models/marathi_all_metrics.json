@@ -58,22 +58,22 @@
     "strategy": "Unigram LM",
     "fertility": 1.421,
     "oov_rate": 0.0,
-    "nsl": 0.206726,
-    "cpt": 4.8511,
+    "nsl": 0.206736,
+    "cpt": 4.8509,
     "pcw": 0.2496,
-    "vocab_size": 14782,
-    "total_tokens": 8071677,
+    "vocab_size": 14786,
+    "total_tokens": 8072085,
     "total_sentences": 138851
   },
   {
     "strategy": "Byte-Level BPE",
     "fertility": 4.8137,
     "oov_rate": 0.0,
-    "nsl": 0.700314,
+    "nsl": 0.700313,
     "cpt": 3.8201,
     "pcw": 0.9373,
-    "vocab_size": 10801,
-    "total_tokens": 27343991,
+    "vocab_size": 10802,
+    "total_tokens": 27343987,
     "total_sentences": 138851
   }
 ]
