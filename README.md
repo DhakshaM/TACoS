@@ -52,7 +52,12 @@ Open `http://localhost:5173`
 
 ### Model Files
 Trained tokenizer models (`.json`) and corpus metrics are not committed to this repo due to size. To obtain them:
-1. Run the Kaggle training notebook (link in `/kaggle/` folder)
+1. Run the Kaggle training notebooks 
+    > Hindi - https://www.kaggle.com/code/dhakshamk/nlp-hindi-tokenizers
+    > 
+    > Tamil - https://www.kaggle.com/code/dhakshamk/nlp-tamil-tokenizers
+    > 
+    > Marathi - https://www.kaggle.com/code/amudhans07/nlp-marathi-tokenizer
 2. Download the output zip
 3. Place files in `backend/models/`
 
