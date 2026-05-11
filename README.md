@@ -20,6 +20,8 @@ An interactive tool for comparing 7 tokenization strategies across Hindi, Marath
 - **CPT** — characters per token
 - **PCW** — proportion of continued words
 
+Playground live metrics are aligned with the Kaggle notebook definitions: `words = text.split()` on the same text that is actually encoded (including Tamil cleaning), `CPT = len(text) / len(tokens)`, `NSL = len(tokens) / len(text)`, `PCW` counts a word as fragmented if tokenizing that word in isolation yields more than one token, and `OOV rate` counts tokens equal to the tokenizer's unknown token.
+
 ## Views
 - **Playground** — color-coded token spans for all strategies, live metric strip
 - **Diff** — word-level alignment table with disagreement highlighting

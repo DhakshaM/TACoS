@@ -14,6 +14,7 @@ const METRICS_META = [
   { key:'nsl',       label:'NSL',        desc:'Tokens per character. Compression proxy.', lowerIsBetter: true },
   { key:'cpt',       label:'CPT',        desc:'Chars per token. Higher = coarser tokens.', lowerIsBetter: false },
   { key:'pcw',       label:'PCW',        desc:'Fragmented word fraction. Lower = less splitting.', lowerIsBetter: true },
+  { key:'vocab_size',label:'Vocab',      desc:'Vocabulary size (# unique subword tokens). Lower = smaller model.', lowerIsBetter: true },
 ]
 
 const STRATEGY_COLORS = {
@@ -39,9 +40,9 @@ const STRATEGY_ABBR = {
 /** Growing snippets for the length sweep (must stay in the script the backend expects per language). */
 const LENGTH_PRESETS_BY_LANGUAGE = {
   hindi: [
-    'भारत', 'भारत एक', 'भारत एक महान', 'भारत एक महान देश',
-    'भारत एक महान देश है', 'भारत एक महान देश है।',
-    'भारत एक महान और विविध देश है जहाँ अनेक भाषाएँ बोली जाती हैं।',
+  'भारत', 'भारत एक', 'भारत एक महान', 'भारत एक महान देश',
+  'भारत एक महान देश है', 'भारत एक महान देश है।',
+  'भारत एक महान और विविध देश है जहाँ अनेक भाषाएँ बोली जाती हैं।',
     'भारत एक संघीय संरचना वाला लोकतांत्रिक देश है जहाँ संसद, न्यायपालिका और कार्यपालिका अपनी भूमिका निभाते हैं।',
     'भारत की आधिकारिक भाषाओं में हिंदी और अंग्रेज़ी शामिल हैं; राज्य अपनी राजभाषा चुनते हैं और विभिन्न भाषाओं में शिक्षा व प्रशासन चलता है।',
     'दुनिया का सातवाँ सबसे बड़ा देश भारत विशाल भौगोलिक विविधता से भरा है; यहाँ हिमालय से समुद्र तट तक जलवायु परिवर्तित होती है और संस्कृति व व्यवसाय के स्वरूप भी भिन्न हैं।',
@@ -133,7 +134,7 @@ function NSLTokenCells({ corpusMetrics, colorList }) {
         <div
           key={row.strategyFull}
           style={colStyle}
-          title={`${row.strategyFull}\n≈ ${row.tokenCells} tokens for ${NSL_REF_CHARS} characters\nNSL = ${row.nsl.toFixed(5)} tok/chr`}
+          title={`${row.strategyFull}\n≈ ${row.tokenCells} tokens for ${NSL_REF_CHARS} characters\nNSL = ${row.nsl.toFixed(3)} tok/chr`}
         >
           <div style={{
             width: NSL_LABEL_COL,
@@ -225,7 +226,7 @@ function NSLTokenCells({ corpusMetrics, colorList }) {
             textAlign: 'right',
           }}
           >
-            {row.nsl.toFixed(2)}
+            {row.nsl.toFixed(3)}
           </div>
         </div>
       ))}
@@ -475,7 +476,7 @@ function CPTTokenRuler({
           }}
             title="Corpus-wide CPT from IndicCorp metrics JSON"
           >
-            {row.cptCorp.toFixed(2)}
+            {row.cptCorp.toFixed(3)}
           </div>
         </div>
       ))}
@@ -751,8 +752,8 @@ function PCWStackTooltip({ active, payload }) {
         {row.strategyFull}
       </div>
       <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1.45 }}>
-        <div><span style={{ color: 'var(--green)' }}>Whole words</span>: {row.wholePct.toFixed(1)}% (~{Math.round(row.wholeWords).toLocaleString()} of ~{Math.round(row.wordsEst).toLocaleString()} words)</div>
-        <div style={{ marginTop: 4 }}><span style={{ color: 'var(--amber)' }}>Split words</span>: {row.fragPct.toFixed(1)}% (~{Math.round(row.fragWords).toLocaleString()} words)</div>
+        <div><span style={{ color: 'var(--green)' }}>Whole words</span>: {row.wholePct.toFixed(3)}% (~{Math.round(row.wholeWords).toLocaleString()} of ~{Math.round(row.wordsEst).toLocaleString()} words)</div>
+        <div style={{ marginTop: 4 }}><span style={{ color: 'var(--amber)' }}>Split words</span>: {row.fragPct.toFixed(3)}% (~{Math.round(row.fragWords).toLocaleString()} words)</div>
       </div>
       <div style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 10, opacity: 0.85, lineHeight: 1.4 }}>
         Shares follow the headline PCW score only—there is no per-token attribution here.
@@ -767,10 +768,7 @@ function formatScatterAxisTick(v) {
   const x = Number(v)
   const a = Math.abs(x)
   if (a >= 100) return `${Math.round(x)}`
-  if (a >= 10) return x.toFixed(2)
-  if (a >= 1) return x.toFixed(3)
-  if (a >= 0.01) return x.toFixed(4)
-  return x.toPrecision(3)
+  return x.toFixed(3)
 }
 
 function FertCptScatterTooltip({ active, payload }) {
@@ -925,11 +923,11 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
           results.map((res, i) => ({
             chars: presets[i].length,
             words: presets[i].trim().split(/\s+/).filter(Boolean).length,
-            ...Object.fromEntries(
+          ...Object.fromEntries(
               Object.entries(res.tokens).map(([tk, v]) => [tk, v.length]),
-            ),
+          ),
           })),
-        )
+      )
       })
       .catch(console.error)
   }, [language])
@@ -1031,7 +1029,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
   const colorList = ['#f0a832','#2dd4bf','#a78bfa','#f472b6','#4ade80','#60a5fa','#fb923c']
 
   const aggBarRows = corpusMetrics.map((s, idx) => {
-    const dec = activeMetric === 'nsl' ? 5 : 4
+    const dec = 3
     const raw = s[activeMetric]
     const v = typeof raw === 'number' ? raw : parseFloat(raw) || 0
     return {
@@ -1146,20 +1144,20 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
           gap: 20,
           alignItems: 'stretch',
         }}>
-          <div style={{
-            background:'var(--bg-1)', borderRadius:'var(--radius-lg)',
-            border:'1px solid var(--border)', padding:'20px',
+        <div style={{
+          background:'var(--bg-1)', borderRadius:'var(--radius-lg)',
+          border:'1px solid var(--border)', padding:'20px',
             minWidth: 0,
+        }}>
+          <div style={{
+            fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
+            letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:16,
           }}>
-            <div style={{
-              fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
-              letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:16,
-            }}>
               {leftPanelChart === 'aggregate' ? aggregateCardTitle : chartCardTitle}
-            </div>
+          </div>
             <div style={{ fontSize:11, color:'var(--text-2)', marginBottom:14, lineHeight:1.45 }}>
               {leftPanelChart === 'aggregate' ? aggregateCardDesc : chartCardDesc}
-            </div>
+          </div>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', marginRight: 4 }}>View:</span>
@@ -1238,8 +1236,8 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                         <Legend wrapperStyle={{ fontFamily:'var(--font-mono)', fontSize:10, paddingTop: 4 }} />
                         <Bar dataKey="wholePct" stackId="pcw" fill="var(--green)" name="Whole words (est.)" />
                         <Bar dataKey="fragPct" stackId="pcw" fill="var(--amber)" name="Split words (est.)" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+            </BarChart>
+          </ResponsiveContainer>
                   )}
 
                   {activeMetric === 'fertility' && (
@@ -1269,15 +1267,15 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                 </>
               )}
             </div>
-          </div>
+        </div>
 
-          <div style={{
-            background:'var(--bg-1)', borderRadius:'var(--radius-lg)',
-            border:'1px solid var(--border)', padding:'20px',
+        <div style={{
+          background:'var(--bg-1)', borderRadius:'var(--radius-lg)',
+          border:'1px solid var(--border)', padding:'20px',
             minWidth: 0,
-          }}>
-            <div style={{
-              fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
+        }}>
+          <div style={{
+            fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
               letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:8,
             }}>Strategy profile (heatmap)</div>
             <div style={{ fontSize:11, color:'var(--text-2)', marginBottom:14, lineHeight:1.45 }}>
@@ -1324,7 +1322,11 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                         const raw = row.strategy[m.key] ?? 0
                         const g = row.scores[j]
                         const pct = Math.round(g * 100)
-                        const dec = m.key === 'nsl' ? 5 : 4
+                        const dec = 3
+                        const displayRaw =
+                          m.key === 'vocab_size'
+                            ? (typeof raw === 'number' ? Math.round(raw).toLocaleString() : String(raw))
+                            : (typeof raw === 'number' ? raw.toFixed(dec) : raw)
                         return (
                           <td
                             key={m.key}
@@ -1337,7 +1339,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                             }}
                           >
                             <div style={{ fontSize:12, fontWeight:600, lineHeight:1.35 }}>
-                              {typeof raw === 'number' ? raw.toFixed(dec) : raw}
+                              {displayRaw}
                             </div>
                             <div style={{ fontSize:10, color:'var(--text-1)', opacity:0.95, marginTop:2 }}>
                               {pct}%
@@ -1362,13 +1364,13 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                 </tbody>
               </table>
             </div>
-          </div>
         </div>
+      </div>
 
-        <div style={{
-          background:'var(--bg-1)', borderRadius:'var(--radius-lg)',
+      <div style={{
+        background:'var(--bg-1)', borderRadius:'var(--radius-lg)',
           border:'1px solid var(--border)', padding:'20px',
-        }}>
+      }}>
         <div style={{
           fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
           letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6,
@@ -1436,12 +1438,12 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
             })}
           </LineChart>
         </ResponsiveContainer>
-        </div>
+      </div>
 
-        <div style={{
-          background:'var(--bg-1)', borderRadius:'var(--radius-lg)',
-          border:'1px solid var(--border)', padding:'20px',
-        }}>
+      <div style={{
+        background:'var(--bg-1)', borderRadius:'var(--radius-lg)',
+        border:'1px solid var(--border)', padding:'20px',
+      }}>
         <div style={{
           fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
           letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:16,
@@ -1449,8 +1451,8 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
         <div style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'separate', borderSpacing:'0 3px' }}>
             <thead>
-              <tr>
-                {['Strategy','Fertility','OOV','NSL','CPT','PCW','Vocab','Tokens'].map(h => (
+              <tr> 
+                {['Strategy','Fertility','NSL','CPT','PCW','Vocab','Tokens'].map(h => (
                   <th key={h} style={{
                     textAlign:'left', fontFamily:'var(--font-mono)', fontSize:10,
                     color:'var(--text-2)', letterSpacing:'0.1em', textTransform:'uppercase',
@@ -1470,7 +1472,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                     }}>
                       {STRATEGY_ABBR[s.strategy] || s.strategy}
                     </td>,
-                    ...['fertility','oov_rate','nsl','cpt','pcw'].map(k => (
+                    ...['fertility','nsl','cpt','pcw'].map(k => (
                       <td key={k} style={{
                         padding:'9px 12px',
                         fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-1)',

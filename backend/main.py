@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json, os
 
-from tokenizers_engine import tokenize_all, compute_live_metrics
+from tokenizers_engine import tokenize_all, build_live_metrics
 
 app = FastAPI(title="Tokenizer Explorer API")
 
@@ -31,13 +31,8 @@ def tokenize(req: TokenizeRequest):
     if not req.text.strip():
         raise HTTPException(400, "Text is empty")
     lang_code, lang_short = LANG_MAP.get(req.language, ("hindi", "hi"))
-    all_tokens = tokenize_all(req.text, lang_code, lang_short)
-
-    # compute metrics for each strategy
-    metrics = {}
-    for strategy, tokens in all_tokens.items():
-        hardcode_pcw = 0.0 if strategy in ("whitespace", "word") else None
-        metrics[strategy] = compute_live_metrics(req.text, tokens, hardcode_pcw)
+    working_text, all_tokens = tokenize_all(req.text, lang_code, lang_short)
+    metrics = build_live_metrics(req.text, all_tokens, lang_code, lang_short)
 
     return {"tokens": all_tokens, "metrics": metrics, "language": req.language}
 

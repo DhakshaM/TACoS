@@ -1,205 +1,370 @@
 // frontend/src/views/Diff.jsx
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { tokenizeText } from '../api'
 
-const PRESETS_BY_LANG = {
-  hindi: [
-    { label: 'Simple',  text: 'भारत एक महान देश है।' },
-    { label: 'Complex', text: 'राजभाषा हिन्दी में क्षमा और करुणा के भाव निहित हैं।' },
-  ],
-  tamil: [
-    { label: 'Simple',  text: 'தமிழ் மொழி அழகானது.' },
-    { label: 'Agglut.', text: 'பேசப்படுகின்றன என்பது ஒரு நீண்ட சொல்.' },
-  ],
-  marathi: [
-    { label: 'Simple',  text: 'मराठी ही महाराष्ट्राची राजभाषा आहे.' },
-    { label: 'Agglut.', text: 'शहरातील गर्दीत चालताना लोक एकमेकांना ओळखत नाहीत.' },
-  ],
+const LANGUAGES = [
+  { code: 'hindi', label: 'Hindi', script: 'हिन्दी' },
+  { code: 'marathi', label: 'Marathi', script: 'मराठी' },
+  { code: 'tamil', label: 'Tamil', script: 'தமிழ்' },
+]
+
+const PRESETS = [
+  {
+    label: 'New Hindi',
+    lang: 'hindi',
+    text: 'भारत एक महान देश है।',
+  },
+  {
+    label: 'Old Hindi (style)',
+    lang: 'hindi',
+    text: 'यह भारतवर्ष महत्त्वपूर्ण देश है।',
+  },
+  {
+    label: 'Tamil',
+    lang: 'tamil',
+    text: 'தமிழ் மொழி அழகானது.',
+  },
+  {
+    label: 'Marathi',
+    lang: 'marathi',
+    text: 'मराठी ही महाराष्ट्राची राजभाषा आहे.',
+  },
+]
+
+function TokenChips({ tokens, compareTo }) {
+  const a = tokens ?? []
+  const b = compareTo ?? []
+  const n = Math.max(a.length, b.length)
+  if (n === 0) {
+    return <span style={{ color: 'var(--text-2)', fontStyle: 'italic' }}>—</span>
+  }
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+      {Array.from({ length: n }, (_, i) => {
+        const tok = a[i]
+        const other = b[i]
+        const same = tok != null && other != null && tok === other
+        const missing = tok == null
+        const bg = missing ? 'transparent' : same ? '#4ade801a' : '#f0a8321a'
+        const border = missing ? 'var(--border)' : same ? 'var(--green)' : 'var(--amber)'
+        const color = missing ? 'var(--text-2)' : same ? 'var(--green)' : 'var(--amber)'
+        return (
+          <span
+            key={i}
+            title={`index ${i}${other != null ? ` · other: ${other}` : ''}`}
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              padding: '2px 6px',
+              borderRadius: 4,
+              background: bg,
+              border: `1px solid ${border}`,
+              color,
+            }}
+          >
+            {tok ?? '∅'}
+          </span>
+        )
+      })}
+    </div>
+  )
 }
 
+export default function Diff({ strategies, defaultLanguage = 'hindi' }) {
+  const [leftLang, setLeftLang] = useState(defaultLanguage)
+  const [rightLang, setRightLang] = useState(defaultLanguage)
+  const [leftText, setLeftText] = useState(PRESETS[0].text)
+  const [rightText, setRightText] = useState(PRESETS[0].text)
 
-// Compute pairwise agreement: for each whitespace word, which strategies agree on
-// how to tokenize it (i.e. produce the same number of sub-tokens)
-function buildDiffTable(text, result) {
-  if (!result) return []
-  const words    = text.trim().split(/\s+/)
-  const keys     = Object.keys(result.tokens)
+  const [leftResult, setLeftResult] = useState(null)
+  const [rightResult, setRightResult] = useState(null)
+  const [loadingLeft, setLoadingLeft] = useState(false)
+  const [loadingRight, setLoadingRight] = useState(false)
+  const [errorLeft, setErrorLeft] = useState(null)
+  const [errorRight, setErrorRight] = useState(null)
 
-  return words.map(word => {
-    const row = { word, strategies: {} }
-    keys.forEach(key => {
-      // naive: count tokens that are "from" this word by string containment
-      const toks = result.tokens[key]
-      const bare = w => w.replace(/^[▁Ġ#]+/, '')
-      const matched = toks.filter(t => {
-        const b = bare(t)
-        return b.length > 0 && word.includes(b)
-      })
-      row.strategies[key] = matched.length === 0 ? [word] : matched
-    })
-
-    // disagreement: strategies differ in token count for this word
-    const counts = keys.map(k => row.strategies[k].length)
-    row.maxCount = Math.max(...counts)
-    row.minCount = Math.min(...counts)
-    row.disagree  = row.maxCount !== row.minCount
-    return row
-  })
-}
-
-export default function Diff({ result, strategies, language, onSubmit, loading }) {
-  const PRESETS = PRESETS_BY_LANG[language] || PRESETS_BY_LANG.hindi
-  const [text, setText] = useState(PRESETS[0].text)
+  const debLeft = useRef(null)
+  const debRight = useRef(null)
 
   useEffect(() => {
-    const newPresets = PRESETS_BY_LANG[language] || PRESETS_BY_LANG.hindi
-    setText(newPresets[0].text)
-    onSubmit(newPresets[0].text)
-  }, [language])
-  const debounceRef       = useRef(null)
+    setLeftLang(defaultLanguage)
+    setRightLang(defaultLanguage)
+  }, [defaultLanguage])
 
-  const handleChange = val => {
-    setText(val)
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => onSubmit(val), 400)
+  const runLeft = async (t, lang) => {
+    if (!t.trim()) {
+      setLeftResult(null)
+      setErrorLeft(null)
+      setLoadingLeft(false)
+      return
+    }
+    setLoadingLeft(true)
+    setErrorLeft(null)
+    try {
+      const res = await tokenizeText(t, lang)
+      setLeftResult(res)
+    } catch (e) {
+      setLeftResult(null)
+      setErrorLeft(String(e?.message ?? e))
+    } finally {
+      setLoadingLeft(false)
+    }
   }
 
-  useEffect(() => { onSubmit(text) }, [language])
+  const runRight = async (t, lang) => {
+    if (!t.trim()) {
+      setRightResult(null)
+      setErrorRight(null)
+      setLoadingRight(false)
+      return
+    }
+    setLoadingRight(true)
+    setErrorRight(null)
+    try {
+      const res = await tokenizeText(t, lang)
+      setRightResult(res)
+    } catch (e) {
+      setRightResult(null)
+      setErrorRight(String(e?.message ?? e))
+    } finally {
+      setLoadingRight(false)
+    }
+  }
 
-  const rows = buildDiffTable(text, result)
+  useEffect(() => {
+    clearTimeout(debLeft.current)
+    debLeft.current = setTimeout(() => runLeft(leftText, leftLang), 350)
+    return () => clearTimeout(debLeft.current)
+  }, [leftText, leftLang])
+
+  useEffect(() => {
+    clearTimeout(debRight.current)
+    debRight.current = setTimeout(() => runRight(rightText, rightLang), 350)
+    return () => clearTimeout(debRight.current)
+  }, [rightText, rightLang])
+
+  const rows = useMemo(() => {
+    return (strategies ?? []).map((s) => {
+      const a = leftResult?.tokens?.[s.key] ?? []
+      const b = rightResult?.tokens?.[s.key] ?? []
+      return {
+        key: s.key,
+        label: s.label,
+        abbr: s.abbr,
+        left: a,
+        right: b,
+        delta: Math.abs((a?.length ?? 0) - (b?.length ?? 0)),
+      }
+    })
+  }, [strategies, leftResult, rightResult])
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
-      {/* input bar */}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <div style={{
-        padding: '16px 28px', borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-1)', display:'flex', gap:12, alignItems:'center', flexShrink:0,
+        padding: '16px 28px',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--bg-1)',
+        flexShrink: 0,
       }}>
-        <input
-          value={text} onChange={e => handleChange(e.target.value)}
-          style={{
-            flex:1, background:'var(--bg-0)', border:'1px solid var(--border-hi)',
-            borderRadius:'var(--radius-md)', color:'var(--text-0)',
-            padding:'9px 14px', fontSize:14, outline:'none',
-          }}
-          onFocus={e  => e.target.style.borderColor = 'var(--amber)'}
-          onBlur={e   => e.target.style.borderColor = 'var(--border-hi)'}
-          placeholder="Enter text to compare…"
-        />
-        {PRESETS.map(p => (
-          <button key={p.label} onClick={() => handleChange(p.text)} style={{
-            padding:'6px 14px', borderRadius:'var(--radius-sm)', fontSize:11,
-            fontFamily:'var(--font-mono)', border:'1px solid var(--border)',
-            color:'var(--text-1)', background: text === p.text ? 'var(--amber-dim)' : 'transparent',
-          }}>{p.label}</button>
-        ))}
+        <div style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
+          color: 'var(--text-2)',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          marginBottom: 10,
+        }}>
+          Classic diff — tokenize two inputs (same or different languages)
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          {/* left */}
+          <div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)' }}>Left:</span>
+              {LANGUAGES.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => setLeftLang(l.code)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                    border: `1px solid ${leftLang === l.code ? 'var(--cyan)' : 'var(--border)'}`,
+                    background: leftLang === l.code ? 'var(--cyan-dim)' : 'transparent',
+                    color: leftLang === l.code ? 'var(--cyan)' : 'var(--text-2)',
+                  }}
+                >
+                  {l.script}
+                </button>
+              ))}
+              <div style={{ flex: 1 }} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: loadingLeft ? 'var(--amber)' : 'var(--text-2)' }}>
+                {loadingLeft ? 'tokenizing…' : (leftResult ? 'ready' : '')}
+              </span>
+            </div>
+            <textarea
+              value={leftText}
+              onChange={(e) => setLeftText(e.target.value)}
+              rows={3}
+              style={{
+                width: '100%',
+                resize: 'vertical',
+                background: 'var(--bg-0)',
+                border: '1px solid var(--border-hi)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-0)',
+                padding: '10px 12px',
+                fontSize: 14,
+                outline: 'none',
+                fontFamily: 'var(--font-ui)',
+              }}
+              placeholder="Paste sentence A…"
+            />
+          </div>
+
+          {/* right */}
+          <div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)' }}>Right:</span>
+              {LANGUAGES.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => setRightLang(l.code)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                    border: `1px solid ${rightLang === l.code ? 'var(--cyan)' : 'var(--border)'}`,
+                    background: rightLang === l.code ? 'var(--cyan-dim)' : 'transparent',
+                    color: rightLang === l.code ? 'var(--cyan)' : 'var(--text-2)',
+                  }}
+                >
+                  {l.script}
+                </button>
+              ))}
+              <div style={{ flex: 1 }} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: loadingRight ? 'var(--amber)' : 'var(--text-2)' }}>
+                {loadingRight ? 'tokenizing…' : (rightResult ? 'ready' : '')}
+              </span>
+            </div>
+            <textarea
+              value={rightText}
+              onChange={(e) => setRightText(e.target.value)}
+              rows={3}
+              style={{
+                width: '100%',
+                resize: 'vertical',
+                background: 'var(--bg-0)',
+                border: '1px solid var(--border-hi)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-0)',
+                padding: '10px 12px',
+                fontSize: 14,
+                outline: 'none',
+                fontFamily: 'var(--font-ui)',
+              }}
+              placeholder="Paste sentence B…"
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => {
+                setLeftLang(p.lang)
+                setRightLang(p.lang)
+                setLeftText(p.text)
+                setRightText(p.text)
+              }}
+              style={{
+                padding: '4px 12px',
+                borderRadius: 999,
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--text-2)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {(errorLeft || errorRight) && (
+          <div style={{
+            marginTop: 10,
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--red)',
+            background: '#2d1010',
+            color: 'var(--red)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+          }}>
+            {errorLeft ? `Left error: ${errorLeft}` : null}
+            {errorLeft && errorRight ? ' · ' : null}
+            {errorRight ? `Right error: ${errorRight}` : null}
+          </div>
+        )}
       </div>
 
-      {/* legend */}
-      <div style={{
-        padding: '10px 28px', borderBottom: '1px solid var(--border)',
-        display:'flex', gap:20, alignItems:'center', flexShrink:0,
-        background:'var(--bg-1)',
-      }}>
-        <span style={{ fontSize:11, color:'var(--text-2)', fontFamily:'var(--font-mono)' }}>
-          Legend:
-        </span>
-        <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'var(--text-1)' }}>
-          <span style={{ width:10, height:10, borderRadius:2, background:'#f0a83218', border:'1px solid var(--amber)', display:'inline-block' }} />
-          Disagreement (strategies split differently)
-        </span>
-        <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'var(--text-1)' }}>
-          <span style={{ width:10, height:10, borderRadius:2, background:'var(--bg-3)', border:'1px solid var(--border)', display:'inline-block' }} />
-          Agreement
-        </span>
-      </div>
-
-      {/* table */}
-      <div style={{ flex:1, overflowY:'auto', padding:'20px 28px' }}>
-        <table style={{ width:'100%', borderCollapse:'separate', borderSpacing: '0 4px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 28px' }}>
+        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 6px' }}>
           <thead>
             <tr>
-              <th style={{
-                textAlign:'left', fontFamily:'var(--font-mono)', fontSize:10,
-                color:'var(--text-2)', letterSpacing:'0.12em', textTransform:'uppercase',
-                paddingBottom: 10, paddingLeft: 12,
-              }}>Word</th>
-              {strategies.map(s => (
-                <th key={s.key} style={{
-                  textAlign:'left', fontFamily:'var(--font-mono)', fontSize:10,
-                  color:'var(--amber)', letterSpacing:'0.12em', textTransform:'uppercase',
-                  paddingBottom: 10, paddingLeft: 8,
-                }}>{s.abbr}</th>
-              ))}
-              <th style={{
-                textAlign:'center', fontFamily:'var(--font-mono)', fontSize:10,
-                color:'var(--text-2)', letterSpacing:'0.12em', textTransform:'uppercase',
-                paddingBottom: 10,
-              }}>Δ</th>
+              <th style={{ textAlign: 'left', padding: '0 12px 10px 0', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Strategy</th>
+              <th style={{ textAlign: 'left', padding: '0 12px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Left tokens</th>
+              <th style={{ textAlign: 'left', padding: '0 12px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Right tokens</th>
+              <th style={{ textAlign: 'center', padding: '0 0 10px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Δ</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
-              <tr key={i} style={{
-                background: row.disagree ? '#f0a83210' : 'var(--bg-2)',
-                borderRadius: 'var(--radius-sm)',
-                transition: 'background 0.15s',
-              }}>
-                {/* word */}
+            {rows.map((r) => (
+              <tr key={r.key} style={{ background: 'var(--bg-2)' }}>
                 <td style={{
-                  padding:'8px 12px', borderRadius:'var(--radius-sm) 0 0 var(--radius-sm)',
-                  border:`1px solid ${row.disagree ? '#f0a83235' : 'var(--border)'}`,
-                  borderRight:'none',
-                  fontFamily:'var(--font-mono)', fontSize:14, color:'var(--text-0)', fontWeight:500,
+                  padding: '10px 12px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--amber)',
+                  whiteSpace: 'nowrap',
+                  borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)',
+                  border: '1px solid var(--border)',
+                  borderRight: 'none',
                 }}>
-                  {row.word}
+                  {r.abbr}
                 </td>
-                {/* per-strategy tokens */}
-                {strategies.map(s => {
-                  const toks  = row.strategies[s.key] || []
-                  const count = toks.length
-                  const worst = count === row.maxCount && row.disagree
-                  return (
-                    <td key={s.key} style={{
-                      padding:'8px 8px',
-                      border:`1px solid ${row.disagree ? '#f0a83235' : 'var(--border)'}`,
-                      borderLeft:'none', borderRight:'none',
-                    }}>
-                      <div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
-                        {toks.map((t, j) => (
-                          <span key={j} style={{
-                            fontFamily:'var(--font-mono)', fontSize:12,
-                            padding:'1px 5px', borderRadius:3,
-                            background: worst ? '#f0a83228' : 'var(--bg-0)',
-                            border:`1px solid ${worst ? 'var(--amber)' : 'var(--border)'}`,
-                            color: worst ? 'var(--amber)' : 'var(--text-1)',
-                          }}>{t}</span>
-                        ))}
-                      </div>
-                    </td>
-                  )
-                })}
-                {/* delta */}
+                <td style={{ padding: '10px 12px', border: '1px solid var(--border)', borderLeft: 'none', borderRight: 'none' }}>
+                  <TokenChips tokens={r.left} compareTo={r.right} />
+                  <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)' }}>{r.left.length} tok</div>
+                </td>
+                <td style={{ padding: '10px 12px', border: '1px solid var(--border)', borderLeft: 'none', borderRight: 'none' }}>
+                  <TokenChips tokens={r.right} compareTo={r.left} />
+                  <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)' }}>{r.right.length} tok</div>
+                </td>
                 <td style={{
-                  padding:'8px 12px', textAlign:'center',
-                  borderRadius:'0 var(--radius-sm) var(--radius-sm) 0',
-                  border:`1px solid ${row.disagree ? '#f0a83235' : 'var(--border)'}`,
-                  borderLeft:'none',
-                  fontFamily:'var(--font-mono)', fontSize:12,
-                  color: row.disagree ? 'var(--amber)' : 'var(--text-2)',
-                  fontWeight: row.disagree ? 700 : 400,
+                  padding: '10px 12px',
+                  textAlign: 'center',
+                  border: '1px solid var(--border)',
+                  borderLeft: 'none',
+                  borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12,
+                  color: r.delta ? 'var(--amber)' : 'var(--text-2)',
+                  fontWeight: r.delta ? 700 : 400,
                 }}>
-                  {row.disagree ? `+${row.maxCount - row.minCount}` : '—'}
+                  {r.delta ? `±${r.delta}` : '—'}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-
-        {!result && (
-          <div style={{ textAlign:'center', color:'var(--text-2)', fontFamily:'var(--font-mono)', fontSize:12, marginTop:40 }}>
-            {loading ? 'Tokenizing…' : 'Enter text above to see word-level comparison'}
-          </div>
-        )}
       </div>
     </div>
   )

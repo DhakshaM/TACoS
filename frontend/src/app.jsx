@@ -118,8 +118,8 @@ export default function App() {
         )}
         {view === 'Diff' && (
           <Diff
-            result={result} strategies={STRATEGIES} language={language}
-            onSubmit={runTokenize} loading={loading}
+            strategies={STRATEGIES}
+            defaultLanguage={language}
           />
         )}
         {view === 'Analysis' && (

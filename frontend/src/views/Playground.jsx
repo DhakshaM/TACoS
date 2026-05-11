@@ -32,15 +32,22 @@ const PRESETS_BY_LANG = {
 
 const METRIC_DEFS = {
   fertility:  { label: 'Fertility',  unit: 'tok/word', good: v => v < 2   ? 'good' : v < 4 ? 'mid' : 'bad' },
+  oov_rate:   { label: 'OOV rate',   unit: 'unk/tok',  good: v => v === 0 ? 'good' : v < 0.01 ? 'mid' : 'bad' },
   nsl:        { label: 'NSL',        unit: 'tok/chr',  good: v => v < 0.3 ? 'good' : v < 0.6 ? 'mid' : 'bad' },
   cpt:        { label: 'CPT',        unit: 'chr/tok',  good: v => v > 2.5 ? 'good' : v > 1.5 ? 'mid' : 'bad' },
   pcw:        { label: 'PCW',        unit: 'frag',     good: v => v < 0.2 ? 'good' : v < 0.6 ? 'mid' : 'bad' },
+  vocab_size: { label: 'Vocab',      unit: 'model',    good: () => 'mid' },
   n_tokens:   { label: 'Tokens',     unit: '#',        good: () => 'mid'  },
 }
 
-function MetricBadge({ label, value, unit, quality }) {
+function MetricBadge({ metricKey, label, value, unit, quality }) {
   const colors = { good: 'var(--green)', mid: 'var(--amber)', bad: 'var(--red)' }
   const color  = colors[quality] || 'var(--text-1)'
+  const display = typeof value === 'number'
+    ? (metricKey === 'vocab_size'
+      ? String(Math.round(value))
+      : value.toFixed(value < 1 ? 4 : 3))
+    : value
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -51,7 +58,7 @@ function MetricBadge({ label, value, unit, quality }) {
       <span style={{
         fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700,
         color, lineHeight: 1,
-      }}>{typeof value === 'number' ? value.toFixed(value < 1 ? 4 : 3) : value}</span>
+      }}>{display}</span>
       <span style={{ fontSize: 9, color: 'var(--text-2)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
       <span style={{ fontSize: 9, color: 'var(--text-2)', opacity: 0.6 }}>{unit}</span>
     </div>
@@ -284,6 +291,7 @@ export default function Playground({ result, loading, error, strategies, languag
                 <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
                   {Object.entries(METRIC_DEFS).filter(([k]) => k !== 'n_tokens').map(([k, def]) => (
                     <MetricBadge key={k}
+                      metricKey={k}
                       label={def.label} value={m[k]} unit={def.unit}
                       quality={def.good(m[k])}
                     />
