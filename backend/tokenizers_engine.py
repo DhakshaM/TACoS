@@ -70,7 +70,7 @@ def clean_tamil(text: str) -> str:
         text = norm.normalize(text)
     except Exception:
         pass
-    text = _TAMIL_RE.sub(' ', text)
+    # Only normalize, don't strip non-Tamil characters—let tokenizers handle mixed scripts
     text = _MULTI_SPACE.sub(' ', text)
     return text.strip()
 
@@ -301,16 +301,26 @@ def build_live_metrics(
     models = _load_lang(lang_code)
     metrics = {}
     
-    # Build combined observed vocabulary from all strategies
-    all_vocab = set()
-    for tokens in all_tokens.values():
-        all_vocab.update(tokens)
+    # Build strategy-specific observed vocabularies from trained model vocabularies
+    strategy_vocabs = {}
+    for strategy in _HF_STRATEGIES:
+        model = models.get(strategy)
+        if model is not None:
+            try:
+                vocab = model.get_vocab(with_added_tokens=True)
+                strategy_vocabs[strategy] = set(vocab.keys())
+            except Exception:
+                strategy_vocabs[strategy] = None
+        else:
+            strategy_vocabs[strategy] = None
     
     for strategy, tokens in all_tokens.items():
+        # Use strategy-specific vocabulary for OOV computation
+        observed_vocab = strategy_vocabs.get(strategy)
         metrics[strategy] = compute_live_metrics(
             working_text,
             tokens,
             encode_word=lambda w, _s=strategy: tokenize_single_word(w, _s, lang_short, models),
-            observed_vocab=all_vocab,
+            observed_vocab=observed_vocab,
         )
     return metrics

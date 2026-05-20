@@ -8,27 +8,16 @@ const LANGUAGES = [
   { code: 'tamil', label: 'Tamil', script: 'தமிழ்' },
 ]
 
-const PRESETS = [
-  {
-    label: 'New Hindi',
-    lang: 'hindi',
-    text: 'भारत एक महान देश है।',
-  },
-  {
-    label: 'Old Hindi (style)',
-    lang: 'hindi',
-    text: 'यह भारतवर्ष महत्त्वपूर्ण देश है।',
-  },
-  {
-    label: 'Tamil',
-    lang: 'tamil',
-    text: 'தமிழ் மொழி அழகானது.',
-  },
-  {
-    label: 'Marathi',
-    lang: 'marathi',
-    text: 'मराठी ही महाराष्ट्राची राजभाषा आहे.',
-  },
+const LEFT_PRESETS = [
+  { label: 'New', text: 'भारत एक महान देश है।', lang: 'hindi' },
+  { label: 'New', text: 'मराठी ही महाराष्ट्राची राजभाषा आहे।', lang: 'marathi' },
+  { label: 'New', text: 'தமிழ் மொழி அழகானது.', lang: 'tamil' },
+]
+
+const RIGHT_PRESETS = [
+  { label: 'Old', text: 'यह भारतवर्ष महत्त्वपूर्ण देश है।', lang: 'hindi' },
+  { label: 'Old', text: 'मराठी एक प्राचीन भाषा आहे।', lang: 'marathi' },
+  { label: 'Old', text: 'தமிழ் ஒரு பழைய மொழி.', lang: 'tamil' },
 ]
 
 function TokenChips({ tokens, compareTo }) {
@@ -73,8 +62,8 @@ function TokenChips({ tokens, compareTo }) {
 export default function Diff({ strategies, defaultLanguage = 'hindi' }) {
   const [leftLang, setLeftLang] = useState(defaultLanguage)
   const [rightLang, setRightLang] = useState(defaultLanguage)
-  const [leftText, setLeftText] = useState(PRESETS[0].text)
-  const [rightText, setRightText] = useState(PRESETS[0].text)
+  const [leftText, setLeftText] = useState(LEFT_PRESETS[0].text)
+  const [rightText, setRightText] = useState(RIGHT_PRESETS[0].text)
 
   const [leftResult, setLeftResult] = useState(null)
   const [rightResult, setRightResult] = useState(null)
@@ -222,6 +211,25 @@ export default function Diff({ strategies, defaultLanguage = 'hindi' }) {
               }}
               placeholder="Paste sentence A…"
             />
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              {LEFT_PRESETS.filter(p => p.lang === leftLang).map((p) => (
+                <button
+                  key={`left-${p.lang}`}
+                  onClick={() => setLeftText(p.text)}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: 999,
+                    border: '1px solid var(--border)',
+                    background: 'transparent',
+                    color: 'var(--text-2)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* right */}
@@ -268,33 +276,29 @@ export default function Diff({ strategies, defaultLanguage = 'hindi' }) {
               }}
               placeholder="Paste sentence B…"
             />
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              {RIGHT_PRESETS.filter(p => p.lang === rightLang).map((p) => (
+                <button
+                  key={`right-${p.lang}`}
+                  onClick={() => setRightText(p.text)}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: 999,
+                    border: '1px solid var(--border)',
+                    background: 'transparent',
+                    color: 'var(--text-2)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-          {PRESETS.map((p) => (
-            <button
-              key={p.label}
-              onClick={() => {
-                setLeftLang(p.lang)
-                setRightLang(p.lang)
-                setLeftText(p.text)
-                setRightText(p.text)
-              }}
-              style={{
-                padding: '4px 12px',
-                borderRadius: 999,
-                border: '1px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--text-2)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+
 
         {(errorLeft || errorRight) && (
           <div style={{
