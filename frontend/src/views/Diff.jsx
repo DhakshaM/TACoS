@@ -9,15 +9,15 @@ const LANGUAGES = [
 ]
 
 const LEFT_PRESETS = [
-  { label: 'New', text: 'भारत एक महान देश है।', lang: 'hindi' },
-  { label: 'New', text: 'मराठी ही महाराष्ट्राची राजभाषा आहे।', lang: 'marathi' },
-  { label: 'New', text: 'தமிழ் மொழி அழகானது.', lang: 'tamil' },
+  { label: 'Old', text: 'साँच बराबरि तप नहीं, झूठ बराबर पाप। जाके हिरदै साँच है ताकै हृदय आप॥', lang: 'hindi' },
+  { label: 'Old', text: 'मराठी ही महाराष्ट्राची राजभाषा आहे।', lang: 'marathi' },
+  { label: 'Old', text: 'துன்புறூஉம் துவ்வாமை இல்லாகும் யார்மாட்டும் இன்புறூஉம் இன்சொ லவர்க்கு', lang: 'tamil' },
 ]
 
 const RIGHT_PRESETS = [
-  { label: 'Old', text: 'यह भारतवर्ष महत्त्वपूर्ण देश है।', lang: 'hindi' },
-  { label: 'Old', text: 'मराठी एक प्राचीन भाषा आहे।', lang: 'marathi' },
-  { label: 'Old', text: 'தமிழ் ஒரு பழைய மொழி.', lang: 'tamil' },
+  { label: 'New', text: 'सच्चाई के बराबर कोई तपस्या नहीं है, झूठ (मिथ्या आचरण) के बराबर कोई पाप कर्म नहीं है। जिसके हृदय में सच्चाई है उसी के हृदय में भगवान निवास करते हैं।', lang: 'hindi' },
+  { label: 'New', text: 'मराठी एक प्राचीन भाषा आहे।', lang: 'marathi' },
+  { label: 'New', text: 'யாரிடத்திலும்‌ இன்புறத்தக்க இன்சொல்‌ வழங்குவோர்க்குத்‌ துன்பத்தை மிகுதிப்படுத்தும்‌ வறுமை என்பது இல்லையாகும்‌.', lang: 'tamil' },
 ]
 
 function TokenChips({ tokens, compareTo }) {
