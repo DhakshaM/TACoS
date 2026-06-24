@@ -1071,6 +1071,8 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
         ? `NSL — ${NSL_REF_CHARS} characters as token cells`
       : activeMetric === 'cpt'
         ? 'CPT — Bite sizes on one phrase'
+      : activeMetric === 'vocab_size'
+        ? 'Vocab size — All strategies'
       : `${metricLabel} — All strategies`
 
   const chartCardDesc =
@@ -1082,6 +1084,8 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
         ? 'NSL comb ruler. Toggle view for aggregate bars. Heatmap on the right.'
       : activeMetric === 'cpt'
         ? 'CPT phrase ruler. Toggle view for aggregate bars. Heatmap on the right.'
+      : activeMetric === 'vocab_size'
+        ? 'Vocabulary size per strategy from the pre-computed IndicCorp corpus metrics. Learned tokenizers (BPE, WordPiece, Unigram, Byte-BPE) are capped at training vocab; rule-based ones reflect observed unique tokens.'
       : (METRICS_META.find(m => m.key === activeMetric)?.desc ?? '')
 
   const aggregateCardTitle = 'Aggregate · IndicCorp JSON'
@@ -1183,7 +1187,9 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                       ? 'NSL chart'
                       : activeMetric === 'cpt'
                         ? 'CPT ruler'
-                        : `${metricLabel} chart`}
+                        : activeMetric === 'vocab_size'
+                          ? 'Vocab chart'
+                          : `${metricLabel} chart`}
               </button>
               <button
                 type="button"
@@ -1205,8 +1211,10 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
 
             <div style={{ minHeight: METRIC_PRIMARY_MIN_HEIGHT, display: 'flex', flexDirection: 'column' }}>
               {leftPanelChart === 'aggregate' ? (
-                <div style={{ flex: 1, minHeight: 200 }}>
-                  <AggregateMetricBarChart rows={aggBarRows} metricLabel={metricLabel} />
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '100%' }}>
+                    <AggregateMetricBarChart rows={aggBarRows} metricLabel={metricLabel} />
+                  </div>
                 </div>
               ) : (
                 <>
@@ -1264,6 +1272,10 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                       colorList={colorList}
                     />
                   )}
+
+                  {activeMetric === 'vocab_size' && (
+                    <AggregateMetricBarChart rows={aggBarRows} metricLabel="Vocab size" />
+                  )}
                 </>
               )}
             </div>
@@ -1293,7 +1305,8 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                       textAlign:'left', padding:'8px 10px 10px 0',
                       color:'var(--text-2)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase',
                       borderBottom:'1px solid var(--border)', whiteSpace:'nowrap',
-                    }}>Strategy</th>
+                      width: 25,
+                    }}></th>
                     {METRICS_META.map(m => (
                       <th key={m.key} style={{
                         textAlign:'center', padding:'8px 8px 10px',
@@ -1312,9 +1325,10 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                   {heatRows.map((row, i) => (
                     <tr key={row.strategy.strategy}>
                       <td style={{
-                        padding:'10px 10px 10px 0', verticalAlign:'middle',
+                        padding:'10px 6px 10px 0', verticalAlign:'middle',
                         fontWeight:700, color: colorList[i % colorList.length], whiteSpace:'nowrap',
                         borderBottom:'1px solid var(--border)',
+                        width: 25,
                       }} title={row.strategy.strategy}>
                         {STRATEGY_ABBR[row.strategy.strategy] || row.strategy.strategy}
                       </td>
