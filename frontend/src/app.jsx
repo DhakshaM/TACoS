@@ -3,9 +3,10 @@ import { useState, useCallback, useEffect } from 'react'
 import Playground from './views/Playground'
 import Diff       from './views/Diff'
 import Analysis   from './views/Analysis'
+import Energy     from './views/Energy'
 import { tokenizeText } from './api'
 
-const VIEWS = ['Playground', 'Diff', 'Analysis']
+const VIEWS = ['Playground', 'Diff', 'Analysis', 'Energy']
 
 const LANGUAGES = [
   { code: 'hindi',   label: 'Hindi',   script: 'हिन्दी' },
@@ -124,6 +125,9 @@ export default function App() {
         )}
         {view === 'Analysis' && (
           <Analysis language={language} liveResult={result} strategies={STRATEGIES} />
+        )}
+        {view === 'Energy' && (
+          <Energy />
         )}
       </main>
     </div>

@@ -16,3 +16,9 @@ export async function getCorpusMetrics(language = 'hindi') {
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
+
+export async function getEnergy() {
+  const res = await fetch(`${BASE}/energy`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
