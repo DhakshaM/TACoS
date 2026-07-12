@@ -1,5 +1,6 @@
 // frontend/src/views/Playground.jsx
 import { useState, useRef, useEffect } from 'react'
+import { decodeBBPEToken, decodeBBPETokens } from '../bbpe'
 
 const TOK_COLORS = [
   'var(--tok-0)','var(--tok-1)','var(--tok-2)','var(--tok-3)',
@@ -77,40 +78,8 @@ function TokenSpans({ tokens, strategyKey }) {
   }
 
   // Decode BBPE: convert the byte-level escaped chars back to readable Unicode
-  const decodeBBPE = (toks) => {
-    try {
-      // HuggingFace ByteLevel uses a specific 256-char mapping
-      // Ġ = space (0x20), other chars map to their byte values
-      const byteMap = {}
-      // Build reverse map: visible char → byte value
-      // The ByteLevel alphabet maps bytes 0-255 to specific Unicode chars
-      let n = 0
-      const addRange = (start, end) => {
-        for (let i = start; i <= end; i++) byteMap[String.fromCodePoint(i)] = i
-      }
-      // Printable ASCII that map to themselves
-      addRange(0x21, 0x7E)
-      addRange(0xA1, 0xAC)
-      addRange(0xAE, 0xFF)
-      // The rest map to 0x100+ range starting from Ā
-      let extra = 0x100
-      for (let b = 0; b < 256; b++) {
-        const c = String.fromCodePoint(b)
-        if (!(c in byteMap)) { byteMap[String.fromCodePoint(extra)] = b; extra++ }
-      }
-      byteMap['Ġ'] = 0x20  // space
-
-      const bytes = []
-      const joined = toks.join('')
-      for (const ch of joined) {
-        if (ch in byteMap) bytes.push(byteMap[ch])
-      }
-      return new TextDecoder('utf-8').decode(new Uint8Array(bytes))
-    } catch { return '(decode error)' }
-  }
-
   const isBBPE    = strategyKey === 'bbpe'
-  const decoded   = isBBPE ? decodeBBPE(tokens) : null
+  const decoded   = isBBPE ? decodeBBPETokens(tokens) : null
 
   return (
     <div>
@@ -138,11 +107,22 @@ function TokenSpans({ tokens, strategyKey }) {
               color, cursor: 'default',
               transition: 'background 0.1s',
               opacity: isBBPE ? 0.75 : 1,
+              display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
+              gap: 1,
             }}
               onMouseEnter={e => e.currentTarget.style.background = `${color}35`}
               onMouseLeave={e => e.currentTarget.style.background = `${color}18`}
             >
               {display}
+              {isBBPE && (() => {
+                const dec = decodeBBPEToken(tok)
+                return dec ? (
+                  <span style={{
+                    fontSize: 10, fontFamily: 'var(--font-ui)',
+                    color: 'var(--cyan)', opacity: 0.9, lineHeight: 1,
+                  }}>{dec}</span>
+                ) : null
+              })()}
             </span>
           )
         })}
@@ -257,13 +237,13 @@ export default function Playground({ result, loading, error, strategies, languag
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-2)',
               textTransform: 'uppercase', letterSpacing: '0.12em',
-            }}>Live metrics — this input only</span>
-            <span style={{
+            }}>Live metrics</span>
+            {/* <span style={{
               fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--cyan-dim)',
               textTransform: 'uppercase', letterSpacing: '0.1em',
               padding: '2px 6px', border: '1px solid var(--cyan-dim)',
               borderRadius: 3,
-            }}>≠ corpus avg</span>
+            }}></span> */}
           </div>
           {result && strategies.map(s => {
             const m = result.metrics?.[s.key]
@@ -313,7 +293,7 @@ export default function Playground({ result, loading, error, strategies, languag
         <div style={{
           fontSize: 10, fontFamily:'var(--font-mono)', color:'var(--text-2)',
           letterSpacing:'0.15em', textTransform:'uppercase', marginBottom: 18,
-        }}>Token Spans — All Strategies</div>
+        }}>Token Spans</div>
 
         <div style={{ display:'flex', flexDirection:'column', gap: 18 }}>
           {strategies.map(s => {

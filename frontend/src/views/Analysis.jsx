@@ -8,6 +8,7 @@ import {
 } from 'recharts'
 import { getCorpusMetrics } from '../api'
 import { tokenizeText }    from '../api'
+import { decodeBBPEToken, decodeBBPETokens } from '../bbpe'
 
 const METRICS_META = [
   { key:'fertility', label:'Fertility',  desc:'Tokens per word. Lower = more efficient.', lowerIsBetter: true },
@@ -290,6 +291,8 @@ function CPTTokenRuler({
     const key = strategies?.[i]?.key
     const tokens = key && tokensByStrategy ? (tokensByStrategy[key] ?? []) : []
     const totalW = tokens.reduce((a, t) => a + tokenCharWeight(t), 0) || 1
+    const isBBPE = key === 'bbpe'
+    const decoded = isBBPE && tokens.length > 0 ? decodeBBPETokens(tokens) : null
     return {
       strategyFull: s.strategy,
       name: STRATEGY_ABBR[s.strategy] || s.strategy.slice(0, 4),
@@ -297,6 +300,8 @@ function CPTTokenRuler({
       totalW,
       color: colorList[i % colorList.length],
       cptCorp: Number(s.cpt) || 0,
+      isBBPE,
+      decoded,
     }
   })
 
@@ -309,7 +314,7 @@ function CPTTokenRuler({
         borderRadius: 'var(--radius-sm)',
       }}>
         <span style={{ color: 'var(--text-2)', fontSize: 10, letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', display: 'block', marginBottom: 8 }}>
-          SAMPLE PHRASE (LIVE TOKENIZATION)
+          SAMPLE PHRASE
         </span>
         <textarea
           value={phraseDraft}
@@ -351,10 +356,10 @@ function CPTTokenRuler({
             <span style={{ fontSize: 11, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>Updating…</span>
           )}
         </div>
-        <p style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 10, lineHeight: 1.5, fontFamily: 'var(--font-mono)' }}>
+        {/* <p style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 10, lineHeight: 1.5, fontFamily: 'var(--font-mono)' }}>
           Bands = live tokenizer output on this text (width ∝ stripped character length → visual “bite size”).
           CPT next to each name is the corpus-wide aggregate from metrics JSON—not recomputed from this phrase.
-        </p>
+        </p> */}
       </div>
       {rows.map((row) => (
         <div
@@ -377,7 +382,7 @@ function CPTTokenRuler({
           >
             {row.name}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
             <div style={{
               textAlign: 'right',
               marginBottom: 6,
@@ -455,15 +460,50 @@ function CPTTokenRuler({
                         hyphens: 'auto',
                         width: '100%',
                         alignSelf: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 2,
                       }}
                       >
                         {label}
+                        {row.isBBPE && (() => {
+                          const dec = decodeBBPEToken(t)
+                          return dec ? (
+                            <span style={{
+                              fontSize: 10, fontFamily: 'var(--font-ui)',
+                              color: 'var(--cyan)', opacity: 0.9,
+                              fontWeight: 400, lineHeight: 1,
+                            }}>{dec}</span>
+                          ) : null
+                        })()}
                       </span>
                     </div>
                   )
                 })
               )}
             </div>
+            {row.decoded && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '4px 10px',
+                background: 'var(--bg-2)',
+                border: '1px solid var(--border)',
+                borderTop: '1px dashed var(--border-hi)',
+                borderRadius: '0 0 10px 10px',
+                marginTop: -1,
+              }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 9,
+                  color: 'var(--text-2)', textTransform: 'uppercase',
+                  letterSpacing: '0.12em', flexShrink: 0,
+                }}>decoded</span>
+                <span style={{
+                  fontFamily: 'var(--font-ui)', fontSize: 13,
+                  color: 'var(--cyan)',
+                }}>{row.decoded}</span>
+              </div>
+            )}
           </div>
           <div style={{
             width: NSL_NS_COL,
@@ -755,9 +795,9 @@ function PCWStackTooltip({ active, payload }) {
         <div><span style={{ color: 'var(--green)' }}>Whole words</span>: {row.wholePct.toFixed(3)}% (~{Math.round(row.wholeWords).toLocaleString()} of ~{Math.round(row.wordsEst).toLocaleString()} words)</div>
         <div style={{ marginTop: 4 }}><span style={{ color: 'var(--amber)' }}>Split words</span>: {row.fragPct.toFixed(3)}% (~{Math.round(row.fragWords).toLocaleString()} words)</div>
       </div>
-      <div style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 10, opacity: 0.85, lineHeight: 1.4 }}>
+      {/* <div style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 10, opacity: 0.85, lineHeight: 1.4 }}>
         Shares follow the headline PCW score only—there is no per-token attribution here.
-      </div>
+      </div> */}
     </div>
   )
 }
@@ -1066,7 +1106,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
     activeMetric === 'pcw'
       ? 'PCW — Whole vs split words'
       : activeMetric === 'fertility'
-        ? 'Fertility vs CPT (corpus)'
+        ? 'Fertility vs CPT'
       : activeMetric === 'nsl'
         ? `NSL — ${NSL_REF_CHARS} characters as token cells`
       : activeMetric === 'cpt'
@@ -1076,20 +1116,12 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
       : `${metricLabel} — All strategies`
 
   const chartCardDesc =
-    activeMetric === 'pcw'
-      ? '100% stacked split by headline PCW: green ≈ intact lexical words; amber ≈ words split across units. Toggle view for corpus aggregate bars. Heatmap on the right.'
-      : activeMetric === 'fertility'
-        ? 'Scatter: corpus fertility vs CPT (compact ticks). Toggle view for aggregate bars. Heatmap on the right.'
-      : activeMetric === 'nsl'
-        ? 'NSL comb ruler. Toggle view for aggregate bars. Heatmap on the right.'
-      : activeMetric === 'cpt'
-        ? 'CPT phrase ruler. Toggle view for aggregate bars. Heatmap on the right.'
-      : activeMetric === 'vocab_size'
-        ? 'Vocabulary size per strategy from the pre-computed IndicCorp corpus metrics. Learned tokenizers (BPE, WordPiece, Unigram, Byte-BPE) are capped at training vocab; rule-based ones reflect observed unique tokens.'
+      activeMetric === 'vocab_size'
+        ? 'Learned tokenizers (BPE, WordPiece, Unigram, Byte-BPE) are capped at training vocab; rule-based ones reflect observed unique tokens from the pre-computed IndicCorp corpus metrics.'
       : (METRICS_META.find(m => m.key === activeMetric)?.desc ?? '')
 
-  const aggregateCardTitle = 'Aggregate · IndicCorp JSON'
-  const aggregateCardDesc = `${metricLabel} per strategy from pre-computed corpus JSON (same metric as the selected tab).`
+  const aggregateCardTitle = 'Aggregate'
+  const aggregateCardDesc = `${metricLabel} per strategy from pre-computed corpus.`
 
   return (
     <div style={{ height:'100%', overflowY:'auto', padding: '28px 32px' }}>
@@ -1114,7 +1146,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
         >
           AI4Bharat IndicCorp
         </a>
-        {' '}(IndicCorpV2) dataset — ~105MB training text per language
+        {' '} training dataset.
       </div>
 
       {/* ── metric selector ── */}
@@ -1130,7 +1162,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
           }}>{m.label}</button>
         ))}
       </div>
-      <div style={{
+      {/* <div style={{
         fontSize: 10,
         color: 'var(--text-2)',
         lineHeight: 1.5,
@@ -1139,7 +1171,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
       }}>
         <strong style={{ color: 'var(--text-1)' }}>Layout:</strong>{' '}
         Left: main chart or corpus aggregate bars (toggle). Right: strategy heatmap. Length sweep and full metrics table are full width below.
-      </div>
+      </div> */}
 
       <div style={{ display:'flex', flexDirection:'column', gap:20, marginBottom:20 }}>
         <div style={{
@@ -1164,49 +1196,51 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
           </div>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', marginRight: 4 }}>View:</span>
-              <button
-                type="button"
-                onClick={() => setLeftPanelChart('main')}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  border: `1px solid ${leftPanelChart === 'main' ? 'var(--cyan)' : 'var(--border)'}`,
-                  background: leftPanelChart === 'main' ? 'var(--cyan-dim)' : 'transparent',
-                  color: leftPanelChart === 'main' ? 'var(--cyan)' : 'var(--text-2)',
-                  cursor: 'pointer',
-                }}
-              >
-                {activeMetric === 'pcw'
-                  ? 'PCW chart'
-                  : activeMetric === 'fertility'
-                    ? 'Fertility vs CPT'
-                    : activeMetric === 'nsl'
-                      ? 'NSL chart'
-                      : activeMetric === 'cpt'
-                        ? 'CPT ruler'
-                        : activeMetric === 'vocab_size'
-                          ? 'Vocab chart'
-                          : `${metricLabel} chart`}
-              </button>
-              <button
-                type="button"
-                onClick={() => setLeftPanelChart('aggregate')}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  border: `1px solid ${leftPanelChart === 'aggregate' ? 'var(--cyan)' : 'var(--border)'}`,
-                  background: leftPanelChart === 'aggregate' ? 'var(--cyan-dim)' : 'transparent',
-                  color: leftPanelChart === 'aggregate' ? 'var(--cyan)' : 'var(--text-2)',
-                  cursor: 'pointer',
-                }}
-              >
-                Aggregate bars
-              </button>
+              {activeMetric !== 'vocab_size' && (
+                <>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', marginRight: 4 }}>View:</span>
+                  <button
+                    type="button"
+                    onClick={() => setLeftPanelChart('main')}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 10,
+                      border: `1px solid ${leftPanelChart === 'main' ? 'var(--cyan)' : 'var(--border)'}`,
+                      background: leftPanelChart === 'main' ? 'var(--cyan-dim)' : 'transparent',
+                      color: leftPanelChart === 'main' ? 'var(--cyan)' : 'var(--text-2)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {activeMetric === 'pcw'
+                      ? 'PCW chart'
+                      : activeMetric === 'fertility'
+                        ? 'Fertility vs CPT'
+                        : activeMetric === 'nsl'
+                          ? 'NSL chart'
+                          : activeMetric === 'cpt'
+                            ? 'CPT ruler'
+                            : `${metricLabel} chart`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLeftPanelChart('aggregate')}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 10,
+                      border: `1px solid ${leftPanelChart === 'aggregate' ? 'var(--cyan)' : 'var(--border)'}`,
+                      background: leftPanelChart === 'aggregate' ? 'var(--cyan-dim)' : 'transparent',
+                      color: leftPanelChart === 'aggregate' ? 'var(--cyan)' : 'var(--text-2)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Aggregate bars
+                  </button>
+                </>
+              )}
             </div>
 
             <div style={{ minHeight: METRIC_PRIMARY_MIN_HEIGHT, display: 'flex', flexDirection: 'column' }}>
@@ -1289,10 +1323,9 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
           <div style={{
             fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
               letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:8,
-            }}>Strategy profile (heatmap)</div>
+            }}>Strategy profile</div>
             <div style={{ fontSize:11, color:'var(--text-2)', marginBottom:14, lineHeight:1.45 }}>
-              Per metric, colour encodes rank within that column (green = best). Each cell shows the raw corpus value
-              and a normalised score (100% = best in column). Overall is the mean of those scores.
+              Per-metric column-wise normalised scores. Overall = mean of those scores.
             </div>
             <div style={{ overflowX:'auto' }}>
               <table style={{
@@ -1371,7 +1404,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
                         <div style={{ fontSize:12, fontWeight:700, lineHeight:1.35 }}>
                           {Math.round(row.overall * 100)}%
                         </div>
-                        <div style={{ fontSize:9, color:'var(--text-2)', marginTop:2 }}>mean rank</div>
+                        <div style={{ fontSize:9, color:'var(--text-1)', marginTop:2 }}>mean rank</div>
                       </td>
                     </tr>
                   ))}
@@ -1388,10 +1421,10 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
         <div style={{
           fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
           letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6,
-        }}>Token Count vs Input Length (Length Sweep)</div>
-        <div style={{ fontSize:11, color:'var(--text-2)', marginBottom:16 }}>
-          X-axis is preset character length (monotonic along the ladder). Word count can dip or stall as phrases grow; tooltip shows both.
-        </div>
+        }}>Token Count vs Input Length</div>
+        {/* <div style={{ fontSize:11, color:'var(--text-2)', marginBottom:16 }}>
+          X-axis is character length - monotonic, not word count as it can dip or stall as phrases grow.
+        </div> */}
         <ResponsiveContainer width="100%" height={320}>
           <LineChart data={sweepDataLogPlot} margin={{ top: 14, right: 10, bottom: 8, left: 6 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -1461,7 +1494,7 @@ export default function Analysis({ language, liveResult: _liveResult, strategies
         <div style={{
           fontFamily:'var(--font-mono)', fontSize:11, color:'var(--amber)',
           letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:16,
-        }}>Full Metrics Table</div>
+        }}>Overall Metrics </div>
         <div style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'separate', borderSpacing:'0 3px' }}>
             <thead>

@@ -326,9 +326,7 @@ export default function Energy() {
               fontSize: 10, color: 'var(--text-2)', lineHeight: 1.6,
               fontFamily: 'var(--font-mono)',
             }}>
-              Tracked via CodeCarbon using RAPL / psutil CPU sampling.
-              Carbon intensity: India grid mix (IND).
-              Each stage wrapped in a separate tracker instance.
+              Tracked via CodeCarbon using RAPL / psutil CPU sampling, for the India grid mix preset (IND).
             </div>
           </>
         ) : !loading && (

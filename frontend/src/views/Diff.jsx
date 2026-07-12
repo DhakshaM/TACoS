@@ -257,7 +257,7 @@ export default function Diff({ strategies, defaultLanguage = 'hindi' }) {
         background: 'var(--bg-1)',
         flexShrink: 0,
       }}>
-        <div style={{
+        {/* <div style={{
           fontFamily: 'var(--font-mono)',
           fontSize: 10,
           color: 'var(--text-2)',
@@ -266,7 +266,7 @@ export default function Diff({ strategies, defaultLanguage = 'hindi' }) {
           marginBottom: 10,
         }}>
           Diff - old vs new
-        </div>
+        </div> */}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           {/* left */}
@@ -549,8 +549,8 @@ export default function Diff({ strategies, defaultLanguage = 'hindi' }) {
           <thead>
             <tr>
               <th style={{ textAlign: 'left', padding: '0 12px 10px 0', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Strategy</th>
-              <th style={{ textAlign: 'left', padding: '0 12px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Left tokens</th>
-              <th style={{ textAlign: 'left', padding: '0 12px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Right tokens</th>
+              <th style={{ textAlign: 'left', padding: '0 12px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Tokens</th>
+              <th style={{ textAlign: 'left', padding: '0 12px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Tokens</th>
               <th style={{ textAlign: 'center', padding: '0 0 10px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Δ</th>
             </tr>
           </thead>
